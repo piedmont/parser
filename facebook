@@ -4,6 +4,9 @@
 // Node packages
 var Path = require('path');
 
+// promises
+var Promise = require('promise');
+
 // filesystem +
 var fs = require('fs-extra');
 
