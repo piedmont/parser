@@ -3,13 +3,12 @@
 
 // Node packages
 var Path = require('path');
-var fs   = require('fs');
+
+// filesystem +
+var fs = require('fs-extra');
 
 // log with colors
 var colors = require('colors');
-
-// Make sure directories exist
-var mkdirp = require('mkdirp');
 
 // Copy directory
 var ncp   = require('ncp').ncp; 
@@ -27,7 +26,7 @@ var p5 = require('parse5');
 // Unarchiver
 var unzip = require('unzip');
  
-// Local (TODO: Remove)
+// Local (for development)
 var LOCAL = 'source/archive.zip';
 
 // Constants
@@ -39,7 +38,7 @@ cmd
   .version(pkg.version)
   .command('parse [path]')
   .description('parse data exported from Facebook')
-  .option('-d, --dir', 'Path is to unarchived export')
+  .option('-d, --dir', 'Path is to unarchived export (flag)')
   .action(function (path, options) {
     var dir = !!options.dir;  
 
@@ -49,15 +48,20 @@ cmd
       dir = false; // override dir flag, if provided
     }
 
-    mkdirp(TMP, function (err) {
-        if (err) explode(err)
-        if (dir) {
-          ncp(path, TMP, read);
-        } else {   
-          var stream = fs.createReadStream(path);
-          stream.pipe(unzip.Extract({ path: TMP }));
-          stream.on('close', read);       
-        }
+    fs.remove(TMP, function (err) {
+      if (err) explode(err);
+
+      fs.ensureDir(TMP, function (err) {
+          if (err) explode(err);
+
+          if (dir) {
+            ncp(path, TMP, read);
+          } else {   
+            var stream = fs.createReadStream(path);
+            stream.pipe(unzip.Extract({ path: TMP }));
+            stream.on('close', read);       
+          }
+      });
     });
   });
 
@@ -94,13 +98,14 @@ function readFile(key, filename, onFileContent, onError) {
 
 // Begin read of files
 function read(err) {
-  if (err) explode(err)
+  console.log('Begin read...');
+  if (err) explode(err);
 
   var sources = {
     html:   [TMP + 'index.htm', TMP + 'html/'],
     photos: [TMP + 'photos/'],
     videos: [TMP + 'videos/']
-  }
+  };
 
   var data = {
     html:   {},
@@ -120,7 +125,7 @@ function read(err) {
         );
         parse(data, key);
       }, function (err) {
-        explode(err)
+        explode(err);
       });
     })
   }
@@ -132,7 +137,7 @@ function parse(data, type) {
 
 // explode
 function explode(err) {
-  console.error(err)
+  console.error(err);
   throw err;
 }
 

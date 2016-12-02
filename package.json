@@ -18,7 +18,7 @@
   "dependencies": {
     "colors": "^1.1.2",
     "commander": "^2.9.0",
-    "mkdirp": "^0.5.1",
+    "fs-extra": "^1.0.0",
     "ncp": "^2.0.0",
     "parse5": "^2.2.3",
     "unzip": "^0.1.11"
