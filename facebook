@@ -1,0 +1,134 @@
+#!/usr/bin/env node
+'use strict';
+
+// Node packages
+var Path = require('path');
+var fs   = require('fs');
+
+// log with colors
+var colors = require('colors');
+
+// Make sure directories exist
+var mkdirp = require('mkdirp');
+
+// Copy directory
+var ncp   = require('ncp').ncp; 
+ncp.limit = 16; // limit to N levels deep
+
+// Package Info
+var pkg = require('./package.json');
+
+// CLI handler
+var cmd = require('commander');
+
+// HTML parser
+var p5 = require('parse5');
+
+// Unarchiver
+var unzip = require('unzip');
+ 
+// Local (TODO: Remove)
+var DIR     = 'source/dir';
+var ARCHIVE = 'source/archive.zip';
+
+// Constants
+var TMP    = 'tmp/';
+var OUTPUT = 'data/';
+
+// Handle CLI command and options
+cmd
+  .version(pkg.version)
+  .command('parse [path]')
+  .description('parse data exported from Facebook')
+  .option('-z, --zip', 'Path is to archive')
+  .action(function (path, options) {
+    var zip = !!options.zip;
+    path = path || (zip ? ARCHIVE : DIR)    
+    mkdirp(TMP, function (err) {
+        if (err) explode(err)
+        if (zip) {
+          var stream = fs.createReadStream(path);
+          stream.pipe(unzip.Extract({ path: TMP }));
+          stream.on('close', read);
+        } else {          
+          ncp(path, TMP, read);
+        }
+    });
+  });
+
+// read files
+function readFiles(key, input, onFileContent, onError) {
+  if (fs.lstatSync(input).isFile()) {
+    readFile(key, input, onFileContent, onError);
+  } else {
+    fs.readdir(input, function (err, filenames) {
+      if (err) onError(err);
+
+      filenames.forEach(function (child) {
+        var c = Path.join(input, child);
+        if (fs.lstatSync(c).isDirectory()) {
+          readFiles(key, c, onFileContent, onError);
+        } else {
+          readFile(key, c, onFileContent, onError);
+        }
+      });
+    });
+  }
+}
+
+function readFile(key, filename, onFileContent, onError) {
+  if (Path.extname(filename).includes('htm')) { 
+    fs.readFile(filename, 'utf-8', function (err, content) {
+      if (err) onError(err);
+      onFileContent(key, filename, content);
+    });
+  } else {
+    onFileContent(key, filename, filename);
+  }
+}
+
+// Begin read of files
+function read(err) {
+  if (err) explode(err)
+
+  var sources = {
+    html:   [TMP + 'index.htm', TMP + 'html/'],
+    photos: [TMP + 'photos/'],
+    videos: [TMP + 'videos/']
+  }
+
+  var data = {
+    html:   {},
+    photos: {},
+    videos: {}
+  };
+
+  for (var key in sources) {
+    sources[key].forEach(function (source) {
+      readFiles(key, source, function (key, filename, content) {
+        data[key][filename] = content;
+        console.log(
+          '[' + key.toUpperCase().yellow + ']', // type
+          filename.underline, // filename
+          '(' + content.length + ' characters)', // number of characters
+          '✓'.green // checkmark
+        );
+        parse(data, key);
+      }, function (err) {
+        explode(err)
+      });
+    })
+  }
+} 
+
+// begin parse of data
+function parse(data, type) {
+}
+
+// explode
+function explode(err) {
+  console.error(err)
+  throw err;
+}
+
+cmd.parse(process.argv);

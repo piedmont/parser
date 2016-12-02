@@ -1,0 +1,27 @@
+{
+  "name": "parser",
+  "version": "1.0.0",
+  "description": "facebook data parser",
+  "main": "parse.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/piedmont/parser.git"
+  },
+  "author": "Will Strimling",
+  "bugs": {
+    "url": "https://github.com/piedmont/parser/issues"
+  },
+  "homepage": "https://github.com/piedmont/parser#readme",
+  "dependencies": {
+    "colors": "^1.1.2",
+    "commander": "^2.9.0",
+    "mkdirp": "^0.5.1",
+    "ncp": "^2.0.0",
+    "parse5": "^2.2.3",
+    "unzip": "^0.1.11"
+  },
+  "devDependencies": {}
+}
