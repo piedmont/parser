@@ -23,13 +23,9 @@ var cmd = require('commander');
 
 // HTML parser
 var p5 = require('parse5');
-
-// Unarchiver
-var unzip = require('unzip');
  
 // Local (TODO: Remove)
-var DIR     = 'source/dir';
-var ARCHIVE = 'source/archive.zip';
+var LOCAL = 'source/archive.zip';
 
 // Constants
 var TMP    = 'tmp/';
@@ -40,19 +36,11 @@ cmd
   .version(pkg.version)
   .command('parse [path]')
   .description('parse data exported from Facebook')
-  .option('-z, --zip', 'Path is to archive')
   .action(function (path, options) {
-    var zip = !!options.zip;
-    path = path || (zip ? ARCHIVE : DIR)    
+    path = path || LOCAL    
     mkdirp(TMP, function (err) {
         if (err) explode(err)
-        if (zip) {
-          var stream = fs.createReadStream(path);
-          stream.pipe(unzip.Extract({ path: TMP }));
-          stream.on('close', read);
-        } else {          
-          ncp(path, TMP, read);
-        }
+        ncp(path, TMP, read);
     });
   });
 
