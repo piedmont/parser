@@ -23,6 +23,9 @@ var cmd = require('commander');
 
 // HTML parser
 var p5 = require('parse5');
+
+// Unarchiver
+var unzip = require('unzip');
  
 // Local (TODO: Remove)
 var LOCAL = 'source/archive.zip';
@@ -36,11 +39,25 @@ cmd
   .version(pkg.version)
   .command('parse [path]')
   .description('parse data exported from Facebook')
+  .option('-d, --dir', 'Path is to unarchived export')
   .action(function (path, options) {
-    path = path || LOCAL    
+    var dir = !!options.dir;  
+
+    // if no path is provided, use local (for development)
+    if (!path) {
+      path = LOCAL;
+      dir = false; // override dir flag, if provided
+    }
+
     mkdirp(TMP, function (err) {
         if (err) explode(err)
-        ncp(path, TMP, read);
+        if (dir) {
+          ncp(path, TMP, read);
+        } else {   
+          var stream = fs.createReadStream(path);
+          stream.pipe(unzip.Extract({ path: TMP }));
+          stream.on('close', read);       
+        }
     });
   });
 

@@ -20,7 +20,8 @@
     "commander": "^2.9.0",
     "mkdirp": "^0.5.1",
     "ncp": "^2.0.0",
-    "parse5": "^2.2.3"
+    "parse5": "^2.2.3",
+    "unzip": "^0.1.11"
   },
   "devDependencies": {}
 }
