@@ -36,18 +36,29 @@ var LOCAL = 'source/archive.zip';
 var TMP    = 'tmp/';
 var OUTPUT = 'data/';
 
+// types
+var PHOTOS = 'PHOTOS';
+var VIDEOS = 'VIDEOS';
+var HTML   = 'HTML';
+
+// extensions
+var HTM = 'HTM';
+var JPG = 'JPG';
+var MP4 = 'MP4';
+var CSS = 'CSS';
+
 // Handle CLI command and options
 cmd
   .version(pkg.version)
-  .command('parse [path]')
+  .command('parse [extract]')
   .description('parse data exported from Facebook')
   .option('-d, --dir', 'Path is to unarchived export (flag)')
-  .action(function (path, options) {
+  .action(function (extract, options) {
     var dir = !!options.dir;  
 
     // if no path is provided, use local (for development)
-    if (!path) {
-      path = LOCAL;
+    if (!extract) {
+      extract = LOCAL;
       dir = false; // override dir flag, if provided
     }
 
@@ -58,9 +69,9 @@ cmd
           if (err) explode(err);
 
           if (dir) {
-            ncp(path, TMP, read);
+            ncp(extract, TMP, read);
           } else {   
-            var stream = fs.createReadStream(path);
+            var stream = fs.createReadStream(extract);
             stream.pipe(unzip.Extract({ path: TMP }));
             stream.on('close', read);       
           }
@@ -69,9 +80,9 @@ cmd
   });
 
 // read files
-function readFiles(key, input, onFileContent, onError) {
+function readFiles(key, input, onSuccess, onError) {
   if (fs.lstatSync(input).isFile()) {
-    readFile(key, input, onFileContent, onError);
+    readFile(key, input, onSuccess, onError);
   } else {
     fs.readdir(input, function (err, filenames) {
       if (err) onError(err);
@@ -79,54 +90,60 @@ function readFiles(key, input, onFileContent, onError) {
       filenames.forEach(function (child) {
         var c = Path.join(input, child);
         if (fs.lstatSync(c).isDirectory()) {
-          readFiles(key, c, onFileContent, onError);
+          readFiles(key, c, onSuccess, onError);
         } else {
-          readFile(key, c, onFileContent, onError);
+          readFile(key, c, onSuccess, onError);
         }
       });
     });
   }
 }
 
-function readFile(key, filename, onFileContent, onError) {
-  if (Path.extname(filename).includes('htm')) { 
-    fs.readFile(filename, 'utf-8', function (err, content) {
+// read file
+function readFile(key, path, onSuccess, onError) {
+  if (Path.extname(path).toLowerCase().includes('htm')) { 
+    fs.readFile(path, 'utf-8', function (err, content) {
       if (err) onError(err);
-      onFileContent(key, filename, content);
+      onSuccess(key, path, content);
     });
   } else {
-    onFileContent(key, filename, filename);
+    onSuccess(key, path, false);
   }
 }
 
-// Begin read of files
+// Begin read
 function read(err) {
   console.log('Begin read...');
   if (err) explode(err);
 
   var sources = {
-    html:   [TMP + 'index.htm', TMP + 'html/'],
-    photos: [TMP + 'photos/'],
-    videos: [TMP + 'videos/']
+    HTML:   [TMP + 'index.htm', TMP + 'html/'],
+    PHOTOS: [TMP + 'photos/'],
+    VIDEOS: [TMP + 'videos/']
   };
 
   var data = {
-    html:   {},
-    photos: {},
-    videos: {}
+    HTML:   {},
+    PHOTOS: {},
+    VIDEOS: {}
   };
 
   for (var key in sources) {
     sources[key].forEach(function (source) {
-      readFiles(key, source, function (key, filename, content) {
-        data[key][filename] = content;
-        console.log(
+      readFiles(key, source, function (key, path, content) {
+        data[key][path] = content;
+        
+        var args = [
           '[' + key.toUpperCase().yellow + ']', // type
-          filename.underline, // filename
-          '(' + content.length + ' characters)', // number of characters
-          '✓'.green // checkmark
-        );
-        parse(data, key);
+          path.underline // path
+        ]
+        if (!!content) {
+          args.push('(' + content.length + ' characters)') // number
+        }
+        args.push('✓'.green) // checkmark
+        console.log.apply(this, args)
+        
+        parse(data, key, path, content);
       }, function (err) {
         explode(err);
       });
@@ -134,8 +151,41 @@ function read(err) {
   }
 } 
 
-// begin parse of data
-function parse(data, type) {
+// begin parse
+function parse(data, key, path, content) {
+  var filename = Path.basename(path, Path.extname(path)).toUpperCase();
+  var ext = Path.extname(path).toUpperCase().substr(1);
+  
+  switch (key) {
+    case PHOTOS:
+      if (ext.includes(HTML)) {
+        // ignore
+      } else if (ext.includes(JPG)) {
+        // images
+      }
+      break;
+      
+    case VIDEOS:
+      if (ext.includes(MP4)) {
+        // video
+      } else if (ext.includes(JPG)) {
+        // frame
+      }
+      break;
+
+    case HTML:
+      if (ext.includes(HTM)) {
+          var document = p5.parseFragment(content);
+          var html = p5.serialize(document);
+
+      } else if (ext.includes(CSS)) {
+        // ignore
+      }
+      break;
+
+    default:
+      break;
+  }
 }
 
 // explode
