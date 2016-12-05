@@ -37,9 +37,9 @@ var TMP    = 'tmp/';
 var OUTPUT = 'data/';
 
 // types
+var HTML   = 'HTML';
 var PHOTOS = 'PHOTOS';
 var VIDEOS = 'VIDEOS';
-var HTML   = 'HTML';
 
 // extensions
 var HTM = 'HTM';
@@ -142,7 +142,7 @@ function read(err) {
         }
         args.push('✓'.green) // checkmark
         console.log.apply(this, args)
-        
+
         parse(data, key, path, content);
       }, function (err) {
         explode(err);
